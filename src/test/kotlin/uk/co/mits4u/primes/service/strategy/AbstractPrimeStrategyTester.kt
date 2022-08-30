@@ -8,6 +8,7 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
 import uk.co.mits4u.primes.service.PrimeStrategy
 import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.Assertions.assertIterableEquals
 import org.junit.jupiter.api.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -41,7 +42,7 @@ abstract class AbstractPrimeStrategyTester(private val primeStrategy: PrimeStrat
     @Test
     fun testGeneratePrimes() = runTest {
         val primeResults = primeStrategy.generatePrimes(100)
-        Assertions.assertThat(primeResults).containsOnly(*primes().toTypedArray())
+        assertIterableEquals(primes().toList(), primeResults)
     }
 
     @Test

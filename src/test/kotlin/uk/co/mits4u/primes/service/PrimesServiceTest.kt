@@ -1,15 +1,16 @@
 package uk.co.mits4u.primes.service
 
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.runTest
-import org.assertj.core.api.Assertions
+import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.*
 import org.mockito.ArgumentMatchers.anyInt
 import uk.co.mits4u.primes.api.pojos.AlgorithmName.ERATOSTHENES
 import uk.co.mits4u.primes.api.pojos.AlgorithmName.SUNDARAM
+
 
 class PrimesServiceTest {
 
@@ -25,6 +26,8 @@ class PrimesServiceTest {
     @Mock
     private lateinit var eratosthenesPrimeStrategy: PrimeStrategy
 
+    @Captor
+    private lateinit var numberCaptor: ArgumentCaptor<Int>
 
     @BeforeEach
     fun setUp() {
@@ -42,27 +45,29 @@ class PrimesServiceTest {
     fun testIsPrime() {
         val isPrime = primesService.isPrime(1, ERATOSTHENES)
         Mockito.verify(numberValidator).validateNumber(1)
-        Assertions.assertThat(isPrime).isTrue
+        assertThat(isPrime).isTrue
     }
 
     @Test
     fun testIsPrimeWhenValidatorThrowsException() {
         Mockito.doThrow(IllegalArgumentException()).`when`(numberValidator).validateNumber(-1)
-        Assertions.assertThatThrownBy { primesService.isPrime(-1, ERATOSTHENES) }
-            .isInstanceOf(IllegalArgumentException::class.java)
+        val thrownException = assertThrows(IllegalArgumentException::class.java) {
+            primesService.isPrime(-1, ERATOSTHENES)
+        }
+        assertTrue(thrownException is IllegalArgumentException)
     }
 
     @Test
     fun testGetPrimesInRange() {
         val results = primesService.getPrimesInRange(1, 10, ERATOSTHENES)
         Mockito.verify(numberValidator).validateRange(1, 10)
-        Assertions.assertThat(results.primes).containsExactly(2, 3, 5, 7)
+        assertThat(results.primes).containsExactly(2, 3, 5, 7)
     }
 
     @Test
     fun testGetPrimesWithValidationException() {
         Mockito.doThrow(IllegalArgumentException()).`when`(numberValidator).validateRange(100, 1)
-        Assertions.assertThatThrownBy { primesService.getPrimesInRange(100, 1, ERATOSTHENES) }
+        assertThatThrownBy { primesService.getPrimesInRange(100, 1, ERATOSTHENES) }
             .isInstanceOf(IllegalArgumentException::class.java)
     }
 
@@ -70,19 +75,27 @@ class PrimesServiceTest {
     fun testGetPrimesInRangeWithExactInclusiveRange() {
         val results = primesService.getPrimesInRange(2, 7, ERATOSTHENES)
         Mockito.verify(numberValidator).validateRange(2, 7)
-        Assertions.assertThat(results.primes).containsExactly(2, 3, 5, 7)
+        assertAll(
+            { assertThat(results.primes).hasSize(4) },
+            { assertThat(results.primes).containsExactly(2, 3, 5, 7) }
+        )
+
     }
 
     @Test
     fun testGetPrimesInRangeWithTrimmingResults() {
-        val results = primesService.getPrimesInRange(3, 3, ERATOSTHENES)
-        Mockito.verify(numberValidator).validateRange(3, 3)
-        Assertions.assertThat(results.primes).containsExactly(3)
+        val results = primesService.getPrimesInRange(3, 4, ERATOSTHENES)
+        Mockito.verify(numberValidator).validateRange(numberCaptor.capture(), numberCaptor.capture())
+        assertAll(
+            { assertThat(numberCaptor.allValues).containsExactly(3, 4) },
+            { assertThat(results.primes).containsExactly(3) }
+        )
+
     }
 
     @Test
     fun testUnknownStrategy() {
-        Assertions.assertThatThrownBy { primesService.getPrimesInRange(1, 10, SUNDARAM) }
+        assertThatThrownBy { primesService.getPrimesInRange(1, 10, SUNDARAM) }
             .isInstanceOf(NullPointerException::class.java)
             .hasMessageContaining("Could note resolve prime strategy for 'SUNDARAM' algorithm")
     }
