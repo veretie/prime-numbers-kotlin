@@ -1,4 +1,4 @@
-# prime-numbers service
+# prime-numbers-kotlin service
 
 ## What does is do?
  1. generates prime numbers
