@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import uk.co.mits4u.primes.service.PrimeStrategy
 import org.slf4j.LoggerFactory
+import kotlin.RuntimeException
 
 @Component("SUNDARAM")
 class SundaramPrimeStrategy(
@@ -36,19 +37,15 @@ class SundaramPrimeStrategy(
         val n = getSundaramLimit(limit)
         val ranges = splitToSlots(n, SLOT_COUNT)
 
-        val job = GlobalScope.launch(Dispatchers.Default.limitedParallelism(threadCount)) {
+        val job = GlobalScope.launch(Dispatchers.Default.limitedParallelism(threadCount) + handler) {
             ranges.forEach { range ->
-                launch {//new thread each time
+                launch {//new thread from the pool each time
                     markInRange(range, primeFlags, n)
                 }
             }
         }
 
-        try {
-            job.join()
-        } catch (e: java.lang.Exception) {
-            throw java.lang.RuntimeException(e)
-        }
+        job.join()
 
     }
 
@@ -95,6 +92,10 @@ class SundaramPrimeStrategy(
             .map { Pair(it, if (it + slotSize < n) it + slotSize else n) }
             .toList()
 
+    }
+
+    val handler = CoroutineExceptionHandler { _, exception ->
+        throw RuntimeException("Primes Coroutines issue", exception)
     }
 
     companion object {
