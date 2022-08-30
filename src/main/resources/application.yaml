@@ -1,0 +1,4 @@
+management.port: 8081
+server.port: 8081
+primes.sundaram.thread.count: 10
+logging.level.uk.co.mits4u.primes: INFO
